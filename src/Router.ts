@@ -1,14 +1,13 @@
 import Route from './Route';
 import {HttpMethod, RouteType} from './constants'
 
-interface IRoutes {
+interface IRoutes extends Record<string, Route[]> {
   get: Route[],
   post: Route[],
   patch: Route[],
   put: Route[],
   delete: Route[],
 }
-
 export default class Router {
 
   private routes:IRoutes = {
@@ -19,16 +18,24 @@ export default class Router {
     delete: [],
   }
   private currentRoute:any;
-  private queryParams: {} | undefined;
+  private queryParams:Record<string,string> | undefined;
+  private routeParams: Record<string,string> | undefined;
 
-  public resolve(requestPath: string, method: HttpMethod = HttpMethod.GET): Function {
+  public exec(path: any, method:HttpMethod=HttpMethod.GET) {
+    this.setQueryParams(path);
+    const callback = this.resolve(path, method);
+    if (callback) {
+      return callback(this.routeParams || {}, this.queryParams || {});
+    }
+  }
+
+  public resolve(requestPath: string, method:HttpMethod=HttpMethod.GET): Function | undefined {
     this.currentRoute = undefined;
-    this.parseQueryParams(requestPath)
+    this.setQueryParams(requestPath)
     const [uri] = requestPath.split('?');
     const routes = this.routes[method];
 
     routes.some(route => {
-      const path = route.getPath();
       if (route.getType() === RouteType.REGEX) {
         const isMatch = uri.match(route.getPath());
         if (isMatch) return this.currentRoute = route;
@@ -36,8 +43,12 @@ export default class Router {
         const isMatch = this.matchStringRoute(uri, route);
         if (isMatch) return this.currentRoute = route;
       }
-    })
-    return this.currentRoute?.getCallback();
+    });
+
+    if (this.currentRoute) {
+      this.setParams(uri);
+      return this.currentRoute.getCallback();
+    }
   }
 
   matchStringRoute(requestPath:string, route:Route): boolean {
@@ -64,15 +75,29 @@ export default class Router {
     return false;
   }
 
-  parseQueryParams(path:string) {
+  private setParams(requestPath: string) {
+    const params:Record<string, string> = {};
+    const requestPathSegments = requestPath.split('/');
+    const routePathSegments = this.currentRoute.getPath().split('/');
+    for (let index = 0; index < routePathSegments.length; index++) {
+      const routeSegment = routePathSegments[index]
+      const requestSegment = requestPathSegments[index]
+      if (routeSegment.startsWith(':')) {
+        const key = routeSegment.replace(':', '');
+        params[key] = requestSegment;
+      }
+    }
+    this.routeParams = params;
+  }
+
+  setQueryParams(path:string) {
     const pathParts = path.split('?');
     if (pathParts.length === 2) {
-      let queryParams = {};
+      let queryParams:Record<string,string> = {};
       let queryString = pathParts[1];
       let pairs = queryString.split('&');
       pairs.forEach(pair => {
         const [key, value] = pair.split('=');
-        // @ts-ignore
         queryParams[key] = value;
       })
       this.queryParams = queryParams;
@@ -81,12 +106,15 @@ export default class Router {
 
   public getQueryParam(key:string, defaultValue:string) {
     if (!this.queryParams) return defaultValue;
-    // @ts-ignore
     return this.queryParams[key];
   }
 
   public getQueryParams() {
     return this.queryParams;
+  }
+
+  public getParams(){
+    return this.routeParams;
   }
 
   public get(path: string, callback:Function, type:RouteType = RouteType.STARTS_WITH): Router {
@@ -107,14 +135,13 @@ export default class Router {
     return this;
   }
 
-  delete(path: string, callback:Function, type:RouteType): Router {
+  delete(path: string, callback:Function, type:RouteType=RouteType.STARTS_WITH): Router {
     const route = new Route(path, HttpMethod.DELETE, callback, type);
     this.routes.delete.push(route);
     return this;
   }
 
   getRoutes(method:string) {
-    // @ts-ignore
     return this.routes[method];
   }
 }

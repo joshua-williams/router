@@ -1,5 +1,5 @@
 import Router from '../src/Router';
-import {HttpMethod, RouteType} from "../src/constants";
+import {HttpMethod} from "../src/constants";
 
 describe('Router Tests', () => {
   let router: Router;
@@ -23,7 +23,8 @@ describe('Router Tests', () => {
   it('should resolve a GET request', () => {
     router.get('/home', () => 'Hello World');
     let callback = router.resolve('/home')
-    expect(callback()).toEqual('Hello World')
+    expect(callback).toBeInstanceOf(Function);
+    expect(callback?.()).toEqual('Hello World')
   })
 
   it('should resolve a GET, POST, PUT, DELETE requests', () => {
@@ -33,17 +34,43 @@ describe('Router Tests', () => {
     testRoute('/home', HttpMethod.DELETE)
   })
 
-  it('should resolve parameterized path', () => {
-    router.get('/product/:id', () => 'Hello World');
-    const callback = router.resolve('/product/83');
+  it('should parse route params', () => {
+    router.get('/product/:id', jest.fn());
+    router.resolve('/product/20');
+    const params = router.getParams();
+    const expectedParams = {id:'20'};
+    expect(params).toEqual(expectedParams)
+
   })
+  it('should parse query params', () => {
+    router.get('/products', jest.fn());
+    router.resolve('/product/?name=food&quality=great');
+    const queryParams = router.getQueryParams();
+    const expectedQueryParams = {name:'food', quality:'great'}
+    expect(queryParams).toEqual(expectedQueryParams)
+  })
+
   it('should parse query parameters', () => {
-    router.get('/product/:id', () => "Hello World");
-    let callback = router.resolve('product/20/?name=food&quality=great')
+    router.delete('/product/:id', () => "Hello World");
+    let callback = router.resolve('product/20/?name=food&quality=great', HttpMethod.DELETE);
     const params = router.getQueryParams();
     expect(typeof callback).toBe('function')
-    expect(callback()).toEqual('Hello World');
+    expect(callback?.()).toEqual('Hello World');
     expect(params).toHaveProperty('name', 'food')
+  });
 
+  it('should invoke callback with route parameters', () => {
+    const callback = jest.fn();
+    router.put('/product/:id', callback);
+    router.exec('/product/20', HttpMethod.PUT);
+    expect(callback).toHaveBeenCalledWith({id:'20'}, {})
+  });
+
+  it('should invoke callback with query parameters', () => {
+    const callback = jest.fn();
+    router.post('/products', callback);
+    router.exec('/products?sort=newest&filter=featured', HttpMethod.POST);
+    const expectedQueryParams = {sort:'newest', filter:'featured'}
+    expect(callback).toHaveBeenCalledWith( {}, expectedQueryParams)
   })
 })
