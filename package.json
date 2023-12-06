@@ -1,20 +1,19 @@
 {
   "name": "router",
   "version": "1.0.0",
-  "description": "",
+  "description": "A stand alone Javascript router that does not require a web server",
+  "author": "Joshua D. Williams",
   "main": "index.js",
   "scripts": {
     "test": "jest"
   },
   "keywords": [],
-  "author": "",
   "license": "ISC",
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "jest": "^29.7.0",
     "@types/jest": "^29.5.10",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.2"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0"
   }
 }

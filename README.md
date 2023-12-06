@@ -42,7 +42,7 @@ import Router from 'router'
 const router = new Router();
 const callback = (routeParams, queryParams) => {
   return `
-    Product ID: ${id}
+    Product ID: ${routeParams.id}
     promocode = ${queryParams.promocode}
     sort = ${queryParams.sort}
   `;

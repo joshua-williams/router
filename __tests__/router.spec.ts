@@ -50,13 +50,13 @@ describe('Router Tests', () => {
     expect(queryParams).toEqual(expectedQueryParams)
   })
 
-  it('should parse query parameters', () => {
+  it('should parse query parameters when resolve is invoked', () => {
     router.delete('/product/:id', () => "Hello World");
     let callback = router.resolve('product/20/?name=food&quality=great', HttpMethod.DELETE);
-    const params = router.getQueryParams();
+    const queryParams = router.getQueryParams();
     expect(typeof callback).toBe('function')
     expect(callback?.()).toEqual('Hello World');
-    expect(params).toHaveProperty('name', 'food')
+    expect(queryParams).toHaveProperty('name', 'food')
   });
 
   it('should invoke callback with route parameters', () => {
